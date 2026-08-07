@@ -16,16 +16,21 @@
   "longitude": 46.7108
 },
   {
-    "id": 2,
-    "name_ar": "برج المملكة",
-    "name_en": "Kingdom Centre",
-    "category": "landmark",
-    "indoor": true,
-    "walking_level": "low",
-    "duration_minutes": 60,
-    "latitude": 24.7114,
-    "longitude": 46.6746
-  },
+  "id": 2,
+  "name_ar": "برج المملكة",
+  "name_en": "Kingdom Centre",
+  "category": "landmark",
+  "tags": ["landmark", "shopping", "view"],
+  "indoor": true,
+  "walking_level": "low",
+  "duration_minutes": 60,
+  "best_time": ["afternoon", "evening"],
+  "suitable_for_children": true,
+  "accessible": true,
+  "price_level": "medium",
+  "latitude": 24.7114,
+  "longitude": 46.6746
+},
   {
     "id": 3,
     "name_ar": "بوليفارد رياض سيتي",
