@@ -1,15 +1,20 @@
 [
   {
-    "id": 1,
-    "name_ar": "المتحف الوطني السعودي",
-    "name_en": "National Museum of Saudi Arabia",
-    "category": "culture",
-    "indoor": true,
-    "walking_level": "low",
-    "duration_minutes": 90,
-    "latitude": 24.6476,
-    "longitude": 46.7108
-  },
+  "id": 1,
+  "name_ar": "المتحف الوطني السعودي",
+  "name_en": "National Museum of Saudi Arabia",
+  "category": "culture",
+  "tags": ["history", "heritage", "museum"],
+  "indoor": true,
+  "walking_level": "low",
+  "duration_minutes": 90,
+  "best_time": ["morning", "afternoon"],
+  "suitable_for_children": true,
+  "accessible": true,
+  "price_level": "low",
+  "latitude": 24.6476,
+  "longitude": 46.7108
+},
   {
     "id": 2,
     "name_ar": "برج المملكة",
