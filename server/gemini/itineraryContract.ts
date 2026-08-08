@@ -1,36 +1,29 @@
 /**
- * Masar — Student 2 contract between Gemini and the app.
- *
- * Gemini selects ONLY from real place candidates supplied by the backend.
- * This prevents invented places and coordinates.
+ * Masar Phase 2 contract. Gemini may select only IDs from riyadh_places.json.
  */
-
 export type MasarCategory =
-  | 'culture'
-  | 'cafes'
-  | 'dining'
-  | 'shopping'
-  | 'nature'
-  | 'entertainment'
-  | 'landmark'
-  | 'heritage'
-  | 'food';
+  | 'culture' | 'cafes' | 'dining' | 'shopping' | 'nature'
+  | 'entertainment' | 'landmark' | 'heritage' | 'food';
 
-export interface GeminiPlaceCandidate {
-  googlePlaceId: string;
-  nameAr: string;
-  nameEn: string;
+export interface RiyadhPlace {
+  id: number;
+  name_ar: string;
+  name_en: string;
   category: MasarCategory;
-  lat: number;
-  lng: number;
-  addressAr: string;
-  addressEn: string;
-  isIndoor: boolean;
-  isAccessible: boolean;
-  isOpen?: boolean;
+  tags: string[];
+  indoor: boolean;
+  walking_level: 'low' | 'medium' | 'high';
+  duration_minutes: number;
+  best_time: string[];
+  suitable_for_children: boolean;
+  accessible: boolean;
+  price_level: 'low' | 'medium' | 'high';
+  latitude: number;
+  longitude: number;
 }
 
-export interface GeminiTripRequest {
+/** Input Schema: data received from the trip-setup screen. */
+export interface GeminiTripPreferences {
   city: 'Riyadh';
   tripDate: string;
   startTime: string;
@@ -43,18 +36,22 @@ export interface GeminiTripRequest {
     hasElderly: boolean;
     wheelchairRequired: boolean;
   };
-  placeCandidates: GeminiPlaceCandidate[];
+}
+
+export interface GeminiTripRequest extends GeminiTripPreferences {
+  placeCandidates: RiyadhPlace[];
 }
 
 export interface GeminiItineraryStop {
   order: number;
-  googlePlaceId: string;
+  placeId: number;
   startTime: string;
   durationMinutes: number;
   reasonAr: string;
   reasonEn: string;
 }
 
+/** Structured Output / JSON Schema: the only format Gemini may return. */
 export interface GeminiItineraryResponse {
   tripTitleAr: string;
   tripTitleEn: string;
@@ -63,7 +60,6 @@ export interface GeminiItineraryResponse {
   stops: GeminiItineraryStop[];
 }
 
-/** JSON schema for Gemini Structured Output. */
 export const GEMINI_ITINERARY_RESPONSE_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -80,10 +76,10 @@ export const GEMINI_ITINERARY_RESPONSE_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['order', 'googlePlaceId', 'startTime', 'durationMinutes', 'reasonAr', 'reasonEn'],
+        required: ['order', 'placeId', 'startTime', 'durationMinutes', 'reasonAr', 'reasonEn'],
         properties: {
           order: { type: 'integer', minimum: 1 },
-          googlePlaceId: { type: 'string' },
+          placeId: { type: 'integer', minimum: 1 },
           startTime: { type: 'string', description: '24-hour time in HH:mm format' },
           durationMinutes: { type: 'integer', minimum: 30, maximum: 180 },
           reasonAr: { type: 'string' },
@@ -96,17 +92,19 @@ export const GEMINI_ITINERARY_RESPONSE_SCHEMA = {
 
 export function validateGeminiItinerary(
   itinerary: GeminiItineraryResponse,
-  candidates: GeminiPlaceCandidate[],
+  places: RiyadhPlace[],
 ): string | null {
-  const allowedPlaceIds = new Set(candidates.map((place) => place.googlePlaceId));
-  const usedPlaceIds = new Set<string>();
+  const placeById = new Map(places.map((place) => [place.id, place]));
+  const selected = new Set<number>();
 
   for (const [index, stop] of itinerary.stops.entries()) {
+    const place = placeById.get(stop.placeId);
     if (stop.order !== index + 1) return 'Stops must be ordered 1, 2, 3...';
-    if (!allowedPlaceIds.has(stop.googlePlaceId)) return 'Gemini selected an unvalidated place.';
-    if (usedPlaceIds.has(stop.googlePlaceId)) return 'The same place cannot appear twice.';
-    if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(stop.startTime)) return 'A stop has an invalid time.';
-    usedPlaceIds.add(stop.googlePlaceId);
+    if (!place) return 'Gemini selected a place outside riyadh_places.json.';
+    if (selected.has(stop.placeId)) return 'The same place cannot appear twice.';
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(stop.startTime)) return 'A stop has an invalid time.';
+    if (stop.durationMinutes !== place.duration_minutes) return 'A stop duration differs from riyadh_places.json.';
+    selected.add(stop.placeId);
   }
 
   return null;
