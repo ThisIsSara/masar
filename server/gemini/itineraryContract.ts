@@ -93,19 +93,48 @@ export const GEMINI_ITINERARY_RESPONSE_SCHEMA = {
 export function validateGeminiItinerary(
   itinerary: GeminiItineraryResponse,
   places: RiyadhPlace[],
+  tripPreferences: Pick<GeminiTripPreferences, 'startTime' | 'endTime'>,
 ): string | null {
   const placeById = new Map(places.map((place) => [place.id, place]));
   const selected = new Set<number>();
+  const tripStart = timeToMinutes(tripPreferences.startTime);
+  const tripEnd = timeToMinutes(tripPreferences.endTime);
+  let previousStopEnd = tripStart;
+
+  if (!isValidTime(tripPreferences.startTime) || !isValidTime(tripPreferences.endTime)) {
+    return 'The trip start or end time is invalid.';
+  }
+  if (tripEnd <= tripStart) return 'The trip end time must be after the start time.';
 
   for (const [index, stop] of itinerary.stops.entries()) {
     const place = placeById.get(stop.placeId);
     if (stop.order !== index + 1) return 'Stops must be ordered 1, 2, 3...';
     if (!place) return 'Gemini selected a place outside riyadh_places.json.';
     if (selected.has(stop.placeId)) return 'The same place cannot appear twice.';
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(stop.startTime)) return 'A stop has an invalid time.';
+    if (!isValidTime(stop.startTime)) return 'A stop has an invalid time.';
     if (stop.durationMinutes !== place.duration_minutes) return 'A stop duration differs from riyadh_places.json.';
+    
+    const stopStart = timeToMinutes(stop.startTime);
+    const stopEnd = stopStart + stop.durationMinutes;
+    if (stopStart < tripStart || stopEnd > tripEnd) {
+      return 'A stop falls outside the selected trip time window.';
+    }
+    if (stopStart < previousStopEnd) {
+      return 'Two itinerary stops overlap.';
+    }
+
+    previousStopEnd = stopEnd;
     selected.add(stop.placeId);
   }
 
   return null;
+}
+
+function isValidTime(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function timeToMinutes(value: string): number {
+  const [hours, minutes] = value.split(':').map(Number);
+  return hours * 60 + minutes;
 }
