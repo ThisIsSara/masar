@@ -206,14 +206,18 @@ Triggered per stop with 5 smart preset replacement filters:
 
 ## 6. Implementation Plan & Phases (مراحل التنفيذ)
 
-### Phase 1: Bilingual Mock UI & Complete Core Flow
+### Phase 1: Bilingual Mock UI & Complete Core Flow [COMPLETED]
 - Set up bilingual framework (Arabic RTL / English LTR) with instant AR/EN state switcher.
 - Implement UI components: Trip Setup Modal (with `tripDate`, duration, interests, `avoidHeat`, mobility), Interactive Map Container, Timeline view, Replace Stop modal, and Assistant drawer.
 - Wire full client state machine using realistic mock data.
 
-### Phase 2: Gemini Structured Itinerary Engine
-- Integrate Gemini API server proxy with JSON Schema enforcement.
-- Build prompt templates incorporating user preferences, time bounds, accessibility requirements, and heat mitigation rules to output structured itineraries.
+### Phase 2: Gemini Structured Itinerary Engine [COMPLETED]
+- Integrated server-side Gemini 3.6 Flash itinerary generation endpoint (`/api/plan`).
+- Enforced JSON Schema (`GEMINI_ITINERARY_RESPONSE_SCHEMA`) via `@google/genai` SDK on the server.
+- Built prompt engineering layer (`planningPrompt.ts`) filtering candidates from approved `riyadh_places.json` based on user preferences (interests, avoidHeat, walking, accessibility).
+- Enforced a mandatory minimum 20-minute transfer buffer between consecutive stops in prompt guidelines and server validation.
+- Connected Trip Setup submission to server-side Gemini execution and mapped returned `placeId`s to the single shared itinerary state (updating title, summary, Timeline, and Adventure Map).
+- Ensured strict error handling: failed requests leave the existing itinerary untouched, keep the setup modal open, and display the localized error banner.
 
 ### Phase 3: Function Calling & Constraint Integrations
 - Enable **Gemini Function Calling** to handle tool calls for replanning and venue filtering.

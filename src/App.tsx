@@ -9,6 +9,7 @@ import {
 import { t } from './translations';
 import { INITIAL_MOCK_ITINERARY, REPLACE_OPTIONS_DATABASE } from './mockData';
 import { recalculateItineraryTimes } from './utils/itineraryUtils';
+import { mapGeminiResponseToItinerary } from './utils/itineraryMapper';
 import { Header } from './components/Header';
 import { TripSetupModal } from './components/TripSetupModal';
 import { InteractiveMap } from './components/InteractiveMap';
@@ -16,7 +17,7 @@ import { Timeline } from './components/Timeline';
 import { StopDetailsModal } from './components/StopDetailsModal';
 import { ReplaceStopModal } from './components/ReplaceStopModal';
 import { TripAssistantDrawer } from './components/TripAssistantDrawer';
-import { Bot, Sparkles, MessageSquare, Settings, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Bot, Sparkles, MessageSquare, Settings, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
 
 export default function App() {
   const [lang, setLang] = useState<Language>('ar');
@@ -89,11 +90,59 @@ export default function App() {
     setLang((prev) => (prev === 'ar' ? 'en' : 'ar'));
   };
 
-  // Save Preferences & Generate Itinerary (Recalculating Times)
-  const handleSavePreferences = (updated: TripPreferences) => {
+  // Plan Loading State
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState<boolean>(false);
+
+  // Save Preferences & Generate Real Gemini Itinerary
+  const handleSavePreferences = async (updated: TripPreferences) => {
     setPreferences(updated);
-    setItinerary((prev) => recalculateItineraryTimes(prev, updated.startTime, updated.endTime));
-    showToast(t(lang, 'planUpdatedToast'));
+    setIsGeneratingPlan(true);
+
+    try {
+      const response = await fetch('/api/plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updated),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.error ||
+            (lang === 'ar'
+              ? 'فشل توليد الخطة بالذكاء الاصطناعي.'
+              : 'Failed to generate itinerary with Gemini.')
+        );
+      }
+
+      const newItinerary = mapGeminiResponseToItinerary(data.itinerary);
+      setItinerary(newItinerary);
+
+      if (newItinerary.stops.length > 0) {
+        setActiveStopId(newItinerary.stops[0].id);
+      }
+
+      showToast(
+        lang === 'ar'
+          ? 'تم توليد خطة الرحلة الذكية بنجاح عبر Gemini!'
+          : 'Smart itinerary generated successfully with Gemini!'
+      );
+    } catch (err: any) {
+      console.error('Gemini itinerary generation error:', err);
+      // Requirement 3: A failed Gemini request must NOT silently reuse/recalculate the old itinerary
+      // Leave current itinerary unchanged and throw error to keep setup modal open and show error
+      throw new Error(
+        err?.message ||
+          (lang === 'ar'
+            ? 'حدث خطأ أثناء الاتصال بالذكاء الاصطناعي (Gemini).'
+            : 'Error communicating with Gemini AI.')
+      );
+    } finally {
+      setIsGeneratingPlan(false);
+    }
   };
 
   // Status Change for Stop (Completed / Current / Upcoming)
@@ -102,6 +151,9 @@ export default function App() {
       const updatedStops = prev.stops.map((stop) => {
         if (stop.id === stopId) {
           return { ...stop, status: newStatus };
+        }
+        if (newStatus === 'current' && stop.status === 'current') {
+          return { ...stop, status: 'upcoming' as const };
         }
         return stop;
       });
@@ -377,6 +429,7 @@ export default function App() {
         lang={lang}
         preferences={preferences}
         onSavePreferences={handleSavePreferences}
+        isLoading={isGeneratingPlan}
       />
 
       <StopDetailsModal

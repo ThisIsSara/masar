@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Language, ItineraryStop } from '../types';
 import { t } from '../translations';
 import {
@@ -36,6 +36,15 @@ export const Timeline: React.FC<TimelineProps> = ({
   onStatusChange,
   lang,
 }) => {
+  useEffect(() => {
+    if (activeStopId) {
+      const cardEl = document.getElementById(`stop-card-${activeStopId}`);
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [activeStopId]);
+
   const getCategoryLabel = (cat: string) => {
     switch (cat) {
       case 'culture':
@@ -96,9 +105,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                   isCompleted
                     ? 'bg-slate-700 text-slate-300 border border-slate-600'
                     : isCurrent
-                    ? 'bg-amber-500 text-slate-950 border-2 border-amber-300 shadow-amber-500/30 ring-4 ring-amber-500/20'
+                    ? 'bg-amber-500 text-slate-950 border-2 border-amber-300 shadow-amber-500/30'
                     : 'bg-slate-900 text-sky-400 border-2 border-sky-500'
-                }`}
+                } ${isSelected ? 'ring-2 ring-amber-500/60 ring-offset-2 ring-offset-slate-950' : ''}`}
               >
                 {isCompleted ? (
                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -110,10 +119,10 @@ export const Timeline: React.FC<TimelineProps> = ({
               {/* Stop Card */}
               <div
                 className={`p-4 rounded-2xl border transition-all ${
-                  isCurrent
+                  isSelected
+                    ? 'bg-slate-900 border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10'
+                    : isCurrent
                     ? 'bg-slate-900/90 border-amber-500/50 shadow-xl shadow-amber-500/5'
-                    : isSelected
-                    ? 'bg-slate-900 border-slate-700'
                     : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
                 }`}
               >
