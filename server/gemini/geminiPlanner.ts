@@ -27,7 +27,7 @@ export async function generateGeminiItinerary(
 
   if (!response.text) throw new Error('Gemini returned an empty response.');
   const itinerary = JSON.parse(response.text) as GeminiItineraryResponse;
-  const error = validateGeminiItinerary(itinerary, request.placeCandidates);
+  const error = validateGeminiItinerary(itinerary, request.placeCandidates, request);
   if (error) throw new Error(error);
   return itinerary;
 }
