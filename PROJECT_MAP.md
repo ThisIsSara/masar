@@ -206,26 +206,30 @@ Triggered per stop with 5 smart preset replacement filters:
 
 ## 6. Implementation Plan & Phases (مراحل التنفيذ)
 
-### Phase 1: Bilingual Mock UI & Complete Core Flow
+### Phase 1: Bilingual Mock UI & Complete Core Flow [COMPLETED]
 - Set up bilingual framework (Arabic RTL / English LTR) with instant AR/EN state switcher.
 - Implement UI components: Trip Setup Modal (with `tripDate`, duration, interests, `avoidHeat`, mobility), Interactive Map Container, Timeline view, Replace Stop modal, and Assistant drawer.
 - Wire full client state machine using realistic mock data.
 
-### Phase 2: Gemini Structured Itinerary Engine
-- Integrate Gemini API server proxy with JSON Schema enforcement.
-- Build prompt templates incorporating user preferences, time bounds, accessibility requirements, and heat mitigation rules to output structured itineraries.
+### Phase 2: Gemini Structured Itinerary Engine [COMPLETED]
+- Integrated server-side Gemini 3.6 Flash itinerary generation endpoint (`/api/plan`).
+- Enforced JSON Schema (`GEMINI_ITINERARY_RESPONSE_SCHEMA`) via `@google/genai` SDK on the server.
+- Built prompt engineering layer (`planningPrompt.ts`) filtering candidates from approved `riyadh_places.json` based on user preferences (interests, avoidHeat, walking, accessibility).
+- Enforced a mandatory minimum 20-minute transfer buffer between consecutive stops in prompt guidelines and server validation.
+- Connected Trip Setup submission to server-side Gemini execution and mapped returned `placeId`s to the single shared itinerary state (updating title, summary, Timeline, and Adventure Map).
+- Ensured strict error handling: failed requests leave the existing itinerary untouched, keep the setup modal open, and display the localized error banner.
 
-### Phase 3: Function Calling & Constraint Integrations
-- Enable **Gemini Function Calling** to handle tool calls for replanning and venue filtering.
-- Implement constraint resolution engines for Riyadh prayer time buffers, heat index/weather checks, and expected crowd level estimations.
+### Phase 3: Function Calling & Constraint Integrations [COMPLETED]
+- Enabled **Gemini Function Calling** (`gemini-3.6-flash`) via server-side endpoint `/api/assistant` to handle tool calls (`add_coffee`, `avoid_heat`, `reduce_walking`, `handle_fatigue`, `skip_stop`, `replace_stop_with_preset`).
+- Implemented constraint resolution engines for Riyadh prayer time buffers, heat index/weather checks, and expected crowd level estimations.
 
-### Phase 4: Real Google Maps Integration & Replace Stop
-- Integrate Google Maps JavaScript API for interactive route rendering, status-coded marker pins, and path polylines.
-- Connect Replace Stop modal to the live venue/Gemini engine using the 5 smart filter options.
+### Phase 4: Real Google Maps Integration & Replace Stop [COMPLETED]
+- Integrated Google Maps JavaScript API for interactive route rendering, status-coded marker pins, and path polylines.
+- Connected Replace Stop modal to live venue engine using 5 smart filter presets (Similar, Closer, Indoor, Less Crowded, Different Activity) with strict candidate ranking, duplicate exclusion, and exact preview-applied matching.
 
-### Phase 5: Natural-Language Replanning & End-to-End Testing
-- Connect Assistant natural language input ("تعبت", "الجو حار", etc.) to Gemini replanning logic.
-- Conduct complete end-to-end testing across both Arabic and English modes to ensure seamless UX, layout stability, and accurate route recalculations.
+### Phase 5: Natural-Language Replanning & End-to-End Testing [COMPLETED]
+- Connected Assistant natural language input ("تعبت", "الجو حار", "أبي كوفي قريب", "قلل المشي") to Gemini Function Calling replanning logic.
+- Conducted complete end-to-end testing across both Arabic and English modes to ensure seamless UX, layout stability, single-source-of-truth state integrity, and accurate route updates.
 
 ---
 

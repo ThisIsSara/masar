@@ -1,6 +1,0 @@
-{
-  "name": "Masar | مسار",
-  "description": "Adaptive tourism planner for Riyadh",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

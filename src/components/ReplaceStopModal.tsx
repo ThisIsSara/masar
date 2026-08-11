@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Language, ItineraryStop, ReplaceFilterPreset } from '../types';
 import { t } from '../translations';
-import { REPLACE_OPTIONS_DATABASE } from '../mockData';
+import {
+  findReplacementPlaceCandidate,
+  createReplacementStop,
+} from '../utils/replaceUtils';
 import {
   X,
   RefreshCw,
@@ -13,10 +16,12 @@ import {
   Check,
   ArrowRightLeft,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 
 interface ReplaceStopModalProps {
   targetStop: ItineraryStop | null;
+  allStopsInItinerary?: ItineraryStop[];
   isOpen: boolean;
   onClose: () => void;
   onConfirmSwap: (oldStopId: string, newStop: ItineraryStop) => void;
@@ -25,6 +30,7 @@ interface ReplaceStopModalProps {
 
 export const ReplaceStopModal: React.FC<ReplaceStopModalProps> = ({
   targetStop,
+  allStopsInItinerary = [],
   isOpen,
   onClose,
   onConfirmSwap,
@@ -33,6 +39,7 @@ export const ReplaceStopModal: React.FC<ReplaceStopModalProps> = ({
   if (!isOpen || !targetStop) return null;
 
   const [activePreset, setActivePreset] = useState<ReplaceFilterPreset>('similar');
+  const [isCalculating, setIsCalculating] = useState<boolean>(false);
 
   const presets: {
     preset: ReplaceFilterPreset;
@@ -50,7 +57,21 @@ export const ReplaceStopModal: React.FC<ReplaceStopModalProps> = ({
     },
   ];
 
-  const suggestedAlternative = REPLACE_OPTIONS_DATABASE[activePreset];
+  const candidateResult = findReplacementPlaceCandidate(
+    targetStop,
+    activePreset,
+    allStopsInItinerary,
+  );
+
+  const suggestedAlternative = createReplacementStop(targetStop, candidateResult.place);
+
+  const handleSelectPreset = (preset: ReplaceFilterPreset) => {
+    setIsCalculating(true);
+    setActivePreset(preset);
+    setTimeout(() => {
+      setIsCalculating(false);
+    }, 150);
+  };
 
   const handleSwap = () => {
     onConfirmSwap(targetStop.id, suggestedAlternative);
@@ -97,7 +118,7 @@ export const ReplaceStopModal: React.FC<ReplaceStopModalProps> = ({
                   <button
                     key={preset}
                     type="button"
-                    onClick={() => setActivePreset(preset)}
+                    onClick={() => handleSelectPreset(preset)}
                     className={`p-3 rounded-xl border text-start transition-all cursor-pointer ${
                       isActive
                         ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'

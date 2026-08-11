@@ -1,8 +1,7 @@
 import React from 'react';
 import { Language } from '../types';
 import { t } from '../translations';
-import { MapPin, Thermometer, Clock, Users, Globe, Settings, Compass } from 'lucide-react';
-import { getNextPrayerHeaderLabel } from '../data/mockPrayerSchedule';
+import { MapPin, Thermometer, Users, Globe, Settings, Compass } from 'lucide-react';
 
 interface HeaderProps {
   lang: Language;
@@ -52,12 +51,7 @@ export const Header: React.FC<HeaderProps> = ({ lang, onLanguageToggle, onOpenSe
             <span>{t(lang, 'tempLabel')}</span>
           </div>
           <span className="text-slate-700 hidden xs:inline">•</span>
-          <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
-            <Clock className="w-3.5 h-3.5 text-emerald-500" />
-            <span>{getNextPrayerHeaderLabel(lang)}</span>
-          </div>
-          <span className="text-slate-700 hidden md:inline">•</span>
-          <div className="flex items-center gap-1.5 text-sky-400 font-medium hidden md:flex">
+          <div className="flex items-center gap-1.5 text-sky-400 font-medium">
             <Users className="w-3.5 h-3.5 text-sky-500" />
             <span>{t(lang, 'expectedCrowdsLabel')}</span>
           </div>

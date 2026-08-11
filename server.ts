@@ -3,6 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { loadRiyadhPlaces } from './src/riyadhPlaces';
 import { generateGeminiItinerary } from './src/geminiPlanner';
+import { processAssistantRequest } from './src/geminiAssistant';
 import type { GeminiTripPreferences } from './src/itineraryContract';
 
 async function startServer() {
@@ -10,6 +11,40 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // API route for assistant natural language commands & function calling
+  app.post('/api/assistant', async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY || '';
+      const { commandKeyOrPrompt, lang, itinerary, activeStopId } = req.body;
+
+      if (!commandKeyOrPrompt || !itinerary) {
+        res.status(400).json({
+          success: false,
+          error: 'Missing required commandKeyOrPrompt or itinerary.',
+        });
+        return;
+      }
+
+      const response = await processAssistantRequest(
+        {
+          commandKeyOrPrompt,
+          lang: lang || 'ar',
+          itinerary,
+          activeStopId,
+        },
+        apiKey,
+      );
+
+      res.json(response);
+    } catch (err: any) {
+      console.error('Error in /api/assistant:', err);
+      res.status(500).json({
+        success: false,
+        error: err?.message || 'Failed to process assistant request.',
+      });
+    }
+  });
 
   // API route for itinerary generation
   app.post('/api/plan', async (req, res) => {

@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Language, TripPreferences, Category, WalkingPreference } from '../types';
 import { t } from '../translations';
 import { timeToMinutes } from '../utils/itineraryUtils';
-import { X, Calendar, Clock, SunMedium, Flame, Footprints, Users, Check, Sparkles, AlertCircle } from 'lucide-react';
+import { X, Calendar, Clock, SunMedium, Flame, Footprints, Users, Check, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 
 interface TripSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
   lang: Language;
   preferences: TripPreferences;
-  onSavePreferences: (updated: TripPreferences) => void;
+  onSavePreferences: (updated: TripPreferences) => Promise<void> | void;
+  isLoading?: boolean;
 }
 
 const MONTH_NAMES_AR = [
@@ -28,9 +29,11 @@ export const TripSetupModal: React.FC<TripSetupModalProps> = ({
   lang,
   preferences,
   onSavePreferences,
+  isLoading = false,
 }) => {
   const [formData, setFormData] = useState<TripPreferences>(preferences);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -166,13 +169,26 @@ export const TripSetupModal: React.FC<TripSetupModalProps> = ({
     validateDateAndTimes(newDateStr, formData.startTime, formData.endTime);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateDateAndTimes(formData.tripDate, formData.startTime, formData.endTime)) {
       return;
     }
-    onSavePreferences(formData);
-    onClose();
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      await onSavePreferences(formData);
+      onClose();
+    } catch (err: any) {
+      setFormError(
+        err?.message ||
+          (lang === 'ar'
+            ? 'حدث خطأ أثناء توليد المسار بالذكاء الاصطناعي.'
+            : 'An error occurred while generating the plan with Gemini AI.')
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -496,10 +512,24 @@ export const TripSetupModal: React.FC<TripSetupModalProps> = ({
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isSubmitting || isLoading}
+              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Sparkles className="w-5 h-5" />
-              <span>{t(lang, 'generatePlan')}</span>
+              {(isSubmitting || isLoading) ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>
+                    {lang === 'ar'
+                      ? 'جاري توليد المسار بالذكاء الاصطناعي...'
+                      : 'Generating Smart Plan with Gemini AI...'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  <span>{t(lang, 'generatePlan')}</span>
+                </>
+              )}
             </button>
           </div>
 
