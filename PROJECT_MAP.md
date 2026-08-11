@@ -219,17 +219,17 @@ Triggered per stop with 5 smart preset replacement filters:
 - Connected Trip Setup submission to server-side Gemini execution and mapped returned `placeId`s to the single shared itinerary state (updating title, summary, Timeline, and Adventure Map).
 - Ensured strict error handling: failed requests leave the existing itinerary untouched, keep the setup modal open, and display the localized error banner.
 
-### Phase 3: Function Calling & Constraint Integrations
-- Enable **Gemini Function Calling** to handle tool calls for replanning and venue filtering.
-- Implement constraint resolution engines for Riyadh prayer time buffers, heat index/weather checks, and expected crowd level estimations.
+### Phase 3: Function Calling & Constraint Integrations [COMPLETED]
+- Enabled **Gemini Function Calling** (`gemini-3.6-flash`) via server-side endpoint `/api/assistant` to handle tool calls (`add_coffee`, `avoid_heat`, `reduce_walking`, `handle_fatigue`, `skip_stop`, `replace_stop_with_preset`).
+- Implemented constraint resolution engines for Riyadh prayer time buffers, heat index/weather checks, and expected crowd level estimations.
 
-### Phase 4: Real Google Maps Integration & Replace Stop
-- Integrate Google Maps JavaScript API for interactive route rendering, status-coded marker pins, and path polylines.
-- Connect Replace Stop modal to the live venue/Gemini engine using the 5 smart filter options.
+### Phase 4: Real Google Maps Integration & Replace Stop [COMPLETED]
+- Integrated Google Maps JavaScript API for interactive route rendering, status-coded marker pins, and path polylines.
+- Connected Replace Stop modal to live venue engine using 5 smart filter presets (Similar, Closer, Indoor, Less Crowded, Different Activity) with strict candidate ranking, duplicate exclusion, and exact preview-applied matching.
 
-### Phase 5: Natural-Language Replanning & End-to-End Testing
-- Connect Assistant natural language input ("تعبت", "الجو حار", etc.) to Gemini replanning logic.
-- Conduct complete end-to-end testing across both Arabic and English modes to ensure seamless UX, layout stability, and accurate route recalculations.
+### Phase 5: Natural-Language Replanning & End-to-End Testing [COMPLETED]
+- Connected Assistant natural language input ("تعبت", "الجو حار", "أبي كوفي قريب", "قلل المشي") to Gemini Function Calling replanning logic.
+- Conducted complete end-to-end testing across both Arabic and English modes to ensure seamless UX, layout stability, single-source-of-truth state integrity, and accurate route updates.
 
 ---
 

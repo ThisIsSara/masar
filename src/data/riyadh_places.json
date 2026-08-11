@@ -158,5 +158,37 @@
     "price_level": "medium",
     "latitude": 24.6969,
     "longitude": 46.6704
+  },
+  {
+    "id": 11,
+    "name_ar": "إكسير البن",
+    "name_en": "Elixir Bunn Coffee Roasters",
+    "category": "cafes",
+    "tags": ["cafes", "coffee", "specialty_coffee", "indoor"],
+    "indoor": true,
+    "walking_level": "low",
+    "duration_minutes": 45,
+    "best_time": ["morning", "afternoon", "evening"],
+    "suitable_for_children": true,
+    "accessible": true,
+    "price_level": "medium",
+    "latitude": 24.7001,
+    "longitude": 46.6800
+  },
+  {
+    "id": 12,
+    "name_ar": "عنوان القهوة",
+    "name_en": "Address Coffee",
+    "category": "cafes",
+    "tags": ["cafes", "coffee", "drinks", "indoor"],
+    "indoor": true,
+    "walking_level": "low",
+    "duration_minutes": 45,
+    "best_time": ["afternoon", "evening"],
+    "suitable_for_children": true,
+    "accessible": true,
+    "price_level": "low",
+    "latitude": 24.7150,
+    "longitude": 46.6720
   }
 ]

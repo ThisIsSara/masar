@@ -13,6 +13,7 @@ import {
   Coffee,
   Footprints,
   SkipForward,
+  Loader2,
 } from 'lucide-react';
 
 interface TripAssistantDrawerProps {
@@ -21,6 +22,7 @@ interface TripAssistantDrawerProps {
   messages: AssistantMessage[];
   onCommand: (commandKeyOrPrompt: string) => void;
   lang: Language;
+  isLoading?: boolean;
 }
 
 export const TripAssistantDrawer: React.FC<TripAssistantDrawerProps> = ({
@@ -29,6 +31,7 @@ export const TripAssistantDrawer: React.FC<TripAssistantDrawerProps> = ({
   messages,
   onCommand,
   lang,
+  isLoading = false,
 }) => {
   const [customText, setCustomText] = useState('');
 
@@ -137,6 +140,13 @@ export const TripAssistantDrawer: React.FC<TripAssistantDrawerProps> = ({
             )}
           </div>
         ))}
+
+        {isLoading && (
+          <div className="flex gap-2.5 justify-start items-center text-xs text-amber-400 bg-slate-950 p-3 rounded-2xl border border-slate-800">
+            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+            <span>{lang === 'ar' ? 'جاري تحليل الطلب وتعديل المسار...' : 'Analyzing request & adjusting itinerary...'}</span>
+          </div>
+        )}
       </div>
 
       {/* Input Box Form */}

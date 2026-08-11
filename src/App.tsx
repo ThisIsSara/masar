@@ -19,6 +19,15 @@ import { ReplaceStopModal } from './components/ReplaceStopModal';
 import { TripAssistantDrawer } from './components/TripAssistantDrawer';
 import { Bot, Sparkles, MessageSquare, Settings, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
 
+// Helper to generate local device date in YYYY-MM-DD format
+function getTodayLocalDateString(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function App() {
   const [lang, setLang] = useState<Language>('ar');
 
@@ -29,9 +38,9 @@ export default function App() {
   }, [lang]);
 
   // Initial Trip Preferences
-  const [preferences, setPreferences] = useState<TripPreferences>({
+  const [preferences, setPreferences] = useState<TripPreferences>(() => ({
     city: 'Riyadh',
-    tripDate: '2026-08-08',
+    tripDate: getTodayLocalDateString(),
     startTime: '16:00',
     endTime: '22:00',
     avoidHeat: true,
@@ -48,7 +57,7 @@ export default function App() {
       addressAr: 'وسط الرياض',
       addressEn: 'Central Riyadh',
     },
-  });
+  }));
 
   // Active Itinerary State
   const [itinerary, setItinerary] = useState<Itinerary>(() =>
@@ -84,6 +93,7 @@ export default function App() {
       timestamp: '16:00',
     },
   ]);
+  const [isAssistantLoading, setIsAssistantLoading] = useState<boolean>(false);
 
   // Language Toggle Handler
   const handleLanguageToggle = () => {
@@ -181,117 +191,85 @@ export default function App() {
     showToast(t(lang, 'stopSwappedToast'));
   };
 
-  // Assistant Command Interpreter (Phase 1 Real Itinerary Mutations)
-  const handleAssistantCommand = (commandKeyOrPrompt: string) => {
+  // Assistant Command Interpreter (Server-Side Gemini Function Calling)
+  const handleAssistantCommand = async (commandKeyOrPrompt: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    let userTextAr = commandKeyOrPrompt;
-    let userTextEn = commandKeyOrPrompt;
-    let responseTextAr = 'تم تعديل المسار بنجاح وبناء خط سير متلائم مع طلبك الميداني.';
-    let responseTextEn = 'Itinerary modified successfully to suit your field request.';
-    let actionAr = 'تعديل جدول المسار';
-    let actionEn = 'Itinerary adjusted';
 
-    // Check preset command keys
-    if (commandKeyOrPrompt === 'cmd_tired' || commandKeyOrPrompt.includes('تعبت') || commandKeyOrPrompt.toLowerCase().includes('tired')) {
-      userTextAr = t('ar', 'cmd_tired');
-      userTextEn = t('en', 'cmd_tired');
-      responseTextAr = 'علم، قمت بتقليل مسافات المشي الميدانية وإضافة وقفة استراحة ومشروبات باردة في المحطة التالية.';
-      responseTextEn = 'Understood! I reduced walking distances and set a relaxing rest stop for your next destination.';
-      actionAr = 'تقليل المشي + إضافة استراحة';
-      actionEn = 'Reduced walking + Added rest stop';
+    let displayUserText = commandKeyOrPrompt;
+    if (commandKeyOrPrompt === 'cmd_tired') displayUserText = t(lang, 'cmd_tired');
+    else if (commandKeyOrPrompt === 'cmd_heat') displayUserText = t(lang, 'cmd_heat');
+    else if (commandKeyOrPrompt === 'cmd_coffee') displayUserText = t(lang, 'cmd_coffee');
+    else if (commandKeyOrPrompt === 'cmd_reduce_walk') displayUserText = t(lang, 'cmd_reduce_walk');
+    else if (commandKeyOrPrompt === 'cmd_skip') displayUserText = t(lang, 'cmd_skip');
 
-      // Mutate state
-      setItinerary((prev) => ({
-        ...prev,
-        stops: prev.stops.map((s) => ({
-          ...s,
-          walkingDistanceMeters: Math.min(s.walkingDistanceMeters, 120),
-        })),
-      }));
-    } else if (commandKeyOrPrompt === 'cmd_heat' || commandKeyOrPrompt.includes('حار') || commandKeyOrPrompt.toLowerCase().includes('hot')) {
-      userTextAr = t('ar', 'cmd_heat');
-      userTextEn = t('en', 'cmd_heat');
-      responseTextAr = 'تم تحويل جميع المحطات المسائية القادمة إلى أماكن داخلية مكيفة ومظللة بالكامل لتجنب الحرارة.';
-      responseTextEn = 'Converted all upcoming stops to fully air-conditioned and shaded indoor venues to escape the heat.';
-      actionAr = 'تكييف وتظليل 100%';
-      actionEn = '100% Indoor & AC enforcement';
-
-      setItinerary((prev) => ({
-        ...prev,
-        stops: prev.stops.map((s) => ({
-          ...s,
-          isIndoor: true,
-        })),
-      }));
-    } else if (commandKeyOrPrompt === 'cmd_coffee' || commandKeyOrPrompt.includes('كوفي') || commandKeyOrPrompt.toLowerCase().includes('coffee')) {
-      userTextAr = t('ar', 'cmd_coffee');
-      userTextEn = t('en', 'cmd_coffee');
-      responseTextAr = 'تم إدراج مقهى مختص هادئ (أكسير البن) في موقع قريب مباشرة قبل محطتك القادمة.';
-      responseTextEn = 'Inserted a nearby specialty coffee stop right before your next main destination.';
-      actionAr = 'إدراج مقهى قريب';
-      actionEn = 'Inserted nearby coffee stop';
-    } else if (commandKeyOrPrompt === 'cmd_reduce_walk' || commandKeyOrPrompt.includes('المشي') || commandKeyOrPrompt.toLowerCase().includes('walk')) {
-      userTextAr = t('ar', 'cmd_reduce_walk');
-      userTextEn = t('en', 'cmd_reduce_walk');
-      responseTextAr = 'تمت إعادة تقييم مسار التنقل لتقليل المشي لأقل من 100 متر في كل المحطات القادمة.';
-      responseTextEn = 'Re-routed the itinerary to ensure walking distance is strictly under 100m for all remaining stops.';
-      actionAr = 'حد أدنى للمشي (<100م)';
-      actionEn = 'Minimized walking (<100m)';
-
-      setItinerary((prev) => ({
-        ...prev,
-        stops: prev.stops.map((s) => ({
-          ...s,
-          walkingDistanceMeters: Math.min(s.walkingDistanceMeters, 80),
-        })),
-      }));
-    } else if (commandKeyOrPrompt === 'cmd_skip' || commandKeyOrPrompt.includes('تخطى') || commandKeyOrPrompt.toLowerCase().includes('skip')) {
-      userTextAr = t('ar', 'cmd_skip');
-      userTextEn = t('en', 'cmd_skip');
-      responseTextAr = 'تم إنهاء المحطة الحالية والانتقال الفوري إلى المحطة القادمة في الجدول.';
-      responseTextEn = 'Completed current stop and auto-advanced your route to the next stop.';
-      actionAr = 'الانتقال للمحطة القادمة';
-      actionEn = 'Advanced to next stop';
-
-      // Auto advance
-      setItinerary((prev) => {
-        let foundCurrent = false;
-        const updated = prev.stops.map((s) => {
-          if (s.status === 'current') {
-            foundCurrent = true;
-            return { ...s, status: 'completed' as const };
-          }
-          if (foundCurrent) {
-            foundCurrent = false;
-            return { ...s, status: 'current' as const };
-          }
-          return s;
-        });
-        return { ...prev, stops: updated };
-      });
-    }
-
-    // Append user & assistant messages
     const newMsgUser: AssistantMessage = {
       id: `usr-${Date.now()}`,
       sender: 'user',
-      textAr: userTextAr,
-      textEn: userTextEn,
+      textAr: displayUserText,
+      textEn: displayUserText,
       timestamp,
     };
 
-    const newMsgBot: AssistantMessage = {
-      id: `bot-${Date.now()}`,
-      sender: 'assistant',
-      textAr: responseTextAr,
-      textEn: responseTextEn,
-      timestamp,
-      actionTakenAr: actionAr,
-      actionTakenEn: actionEn,
-    };
+    setAssistantMessages((prev) => [...prev, newMsgUser]);
+    setIsAssistantLoading(true);
 
-    setAssistantMessages((prev) => [...prev, newMsgUser, newMsgBot]);
-    showToast(lang === 'ar' ? responseTextAr : responseTextEn);
+    try {
+      const response = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commandKeyOrPrompt,
+          lang,
+          itinerary,
+          activeStopId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.error ||
+            (lang === 'ar'
+              ? 'حدث خطأ أثناء معالجة طلب المساعد.'
+              : 'Failed to process assistant request.'),
+        );
+      }
+
+      if (data.updatedItinerary) {
+        setItinerary(data.updatedItinerary);
+      }
+
+      const newMsgBot: AssistantMessage = {
+        id: `bot-${Date.now()}`,
+        sender: 'assistant',
+        textAr: data.messageAr,
+        textEn: data.messageEn,
+        timestamp,
+        actionTakenAr: data.actionTakenAr,
+        actionTakenEn: data.actionTakenEn,
+      };
+
+      setAssistantMessages((prev) => [...prev, newMsgBot]);
+      showToast(lang === 'ar' ? data.messageAr : data.messageEn);
+    } catch (err: any) {
+      console.error('Assistant API error:', err);
+      const errorBotMsg: AssistantMessage = {
+        id: `bot-err-${Date.now()}`,
+        sender: 'assistant',
+        textAr: err?.message || 'تعذر الاتصال بالمساعد الذكي، تمت المحافظة على المسار الحالي.',
+        textEn: err?.message || 'Failed to communicate with assistant. Existing itinerary preserved.',
+        timestamp,
+      };
+      setAssistantMessages((prev) => [...prev, errorBotMsg]);
+      showToast(
+        lang === 'ar'
+          ? 'تعذر تنفيذ طلب المساعد، تم الحفاظ على خطتك.'
+          : 'Failed to execute request. Preserved existing plan.',
+      );
+    } finally {
+      setIsAssistantLoading(false);
+    }
   };
 
   const activeStopObj = itinerary.stops.find((s) => s.id === activeStopId) || itinerary.stops[0];
@@ -445,6 +423,7 @@ export default function App() {
 
       <ReplaceStopModal
         targetStop={replaceTargetStop}
+        allStopsInItinerary={itinerary.stops}
         isOpen={isReplaceModalOpen}
         onClose={() => setIsReplaceModalOpen(false)}
         onConfirmSwap={handleConfirmSwap}
@@ -457,6 +436,7 @@ export default function App() {
         messages={assistantMessages}
         onCommand={handleAssistantCommand}
         lang={lang}
+        isLoading={isAssistantLoading}
       />
 
     </div>

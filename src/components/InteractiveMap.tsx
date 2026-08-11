@@ -29,6 +29,42 @@ interface InteractiveMapProps {
 
 type TravelMode = 'DRIVING' | 'WALKING';
 
+const applyPolylineStyles = (
+  polylines: google.maps.Polyline[],
+  activeId: string | null | undefined,
+  stopsList: ItineraryStop[],
+) => {
+  if (!polylines || polylines.length === 0) return;
+
+  const selectedIndex = activeId ? stopsList.findIndex((s) => s.id === activeId) : -1;
+  const hasHighlight = selectedIndex >= 0 && selectedIndex < stopsList.length - 1;
+
+  polylines.forEach((polyline, index) => {
+    if (hasHighlight && index === selectedIndex) {
+      polyline.setOptions({
+        strokeColor: '#f59e0b',
+        strokeOpacity: 0.95,
+        strokeWeight: 6,
+        zIndex: 100,
+      });
+    } else if (hasHighlight) {
+      polyline.setOptions({
+        strokeColor: '#f59e0b',
+        strokeOpacity: 0.35,
+        strokeWeight: 3.5,
+        zIndex: 1,
+      });
+    } else {
+      polyline.setOptions({
+        strokeColor: '#f59e0b',
+        strokeOpacity: 0.5,
+        strokeWeight: 4,
+        zIndex: 1,
+      });
+    }
+  });
+};
+
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   stops,
   activeStopId,
@@ -158,7 +194,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               title: lang === 'ar' ? stop.nameAr : stop.nameEn,
               content: markerElement,
               gmpClickable: true,
-              zIndex: isActive ? 1000 : isCurrent ? 500 : 1,
+              zIndex: isActive ? 1000 : isCurrent ? 500 : 10 + (stop.order || 0),
             });
 
           marker.addEventListener('gmp-click', () => {
@@ -169,7 +205,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         });
 
         if (stops.length > 1) {
-          map.fitBounds(bounds, 70);
+          map.fitBounds(bounds, { top: 75, bottom: 85, left: 70, right: 70 });
         } else if (stops.length === 1) {
           map.setCenter({
             lat: stops[0].location.lat,
@@ -278,20 +314,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           if (createdPolylines.length > 0) {
             createdPolylines.forEach((polyline) => {
-              polyline.setOptions({
-                strokeColor: '#f59e0b',
-                strokeOpacity: 0.9,
-                strokeWeight: 5,
-              });
               polyline.setMap(map);
             });
             routePolylinesRef.current = createdPolylines;
           } else if (route.path && route.path.length > 0) {
             const polyline = new google.maps.Polyline({
               path: route.path,
-              strokeColor: '#f59e0b',
-              strokeOpacity: 0.9,
-              strokeWeight: 5,
               map,
             });
             routePolylinesRef.current = [polyline];
@@ -301,9 +329,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               if (leg.path && leg.path.length > 0) {
                 const polyline = new google.maps.Polyline({
                   path: leg.path,
-                  strokeColor: '#f59e0b',
-                  strokeOpacity: 0.9,
-                  strokeWeight: 5,
                   map,
                 });
                 legPolylines.push(polyline);
@@ -311,6 +336,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             });
             routePolylinesRef.current = legPolylines;
           }
+
+          applyPolylineStyles(routePolylinesRef.current, activeStopId, stops);
 
           let totalMeters = route.distanceMeters ?? 0;
           let totalSeconds = route.durationMillis ? Math.round(route.durationMillis / 1000) : 0;
@@ -364,6 +391,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
     computeRoute();
   }, [mapReady, stops, travelMode, lang]);
+
+  // Dynamically highlight selected stop's leg without re-querying Google Routes API
+  useEffect(() => {
+    applyPolylineStyles(routePolylinesRef.current, activeStopId, stops);
+  }, [activeStopId, stops]);
 
   const handleZoomIn = () => {
     const map = mapRef.current;
