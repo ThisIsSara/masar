@@ -72,7 +72,7 @@ All Gemini API calls are executed strictly **server-side** via Express endpoints
 
 ## ⚙️ Environment Variables
 
-Copy `.env.example` to `.env` when configuring environment variables:
+Use `.env.example` as a reference for the required environment variables.
 
 ```env
 # GEMINI_API_KEY: Required server-side key for Gemini 3.6 Flash
@@ -96,6 +96,7 @@ VITE_GOOGLE_MAPS_API_KEY="your_google_maps_api_key"
 
 2. **Start Development Server:**
    ```bash
+   Before starting the server, make sure `GEMINI_API_KEY` is set in your terminal/process environment.
    npm run dev
    ```
    The app will run at `http://localhost:3000`.
