@@ -57,7 +57,7 @@
 └────────────────────────────────────────────────────────┘
 ```
 
-- **Frontend:** React 18/19, Vite, Tailwind CSS v4, Lucide React, Motion.
+- **Frontend:** React 19, Vite, Tailwind CSS v4, Lucide React, Motion.
 - **Backend:** Node.js Express server (`server.ts`) bundled with esbuild for production.
 - **AI SDK:** `@google/genai` using model `gemini-3.6-flash`.
 - **Mapping:** Google Maps JavaScript API.
@@ -95,8 +95,8 @@ VITE_GOOGLE_MAPS_API_KEY="your_google_maps_api_key"
    ```
 
 2. **Start Development Server:**
+   Set `GEMINI_API_KEY` in your environment before starting the server.
    ```bash
-   Before starting the server, make sure `GEMINI_API_KEY` is set in your terminal/process environment.
    npm run dev
    ```
    The app will run at `http://localhost:3000`.
